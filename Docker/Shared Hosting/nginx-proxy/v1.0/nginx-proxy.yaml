@@ -1,0 +1,40 @@
+version: '3'
+
+services:
+  nginx-proxy:
+    image: jwilder/nginx-proxy:alpine
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - proxy
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - certs:/etc/nginx/certs:ro
+      - vhostd:/etc/nginx/vhost.d
+      - html:/usr/share/nginx/html
+    labels:
+      - com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy
+
+  letsencrypt:
+    image: jrcs/letsencrypt-nginx-proxy-companion
+    restart: always
+    networks:
+      - proxy
+    environment:
+      - NGINX_PROXY_CONTAINER=nginx-proxy
+    volumes:
+      - certs:/etc/nginx/certs:rw
+      - vhostd:/etc/nginx/vhost.d
+      - html:/usr/share/nginx/html
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+volumes:
+#these volumes are created in host machine inside docker's workspace path. 
+#'/var/lib/docker/volumes/<project_volume-name>'
+  certs:
+  html:
+  vhostd:
+networks:
+  proxy:
+    name: proxy

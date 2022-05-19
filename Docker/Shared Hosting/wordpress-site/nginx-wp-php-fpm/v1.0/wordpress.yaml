@@ -1,0 +1,51 @@
+version: '3.9'
+
+services:
+   db:
+     image: mysql:5.7
+     volumes:
+       - /data/db:/var/lib/mysql
+     restart: always
+     networks:
+       - proxy
+     environment:
+       MYSQL_ROOT_PASSWORD: my_db_root_password
+       MYSQL_DATABASE: wordpress
+       MYSQL_USER: wordpress
+       MYSQL_PASSWORD: my_wordpress_db_password
+
+   wordpress:
+     depends_on:
+       - db
+     image: wordpress:5.9.2-php8.1-fpm-alpine
+     volumes:
+       - /data/html:/var/www/html
+     networks:
+       - proxy
+     restart: always
+     environment:
+       - WORDPRESS_DB_HOST=db:3306
+       - WORDPRESS_DB_NAME=wordpress
+       - WORDPRESS_DB_USER=wordpress
+       - WORDPRESS_DB_PASSWORD=my_wordpress_db_password
+       - WORDPRESS_TABLE_PREFIX=wp_
+#       - WORDPRESS_DEBUG=on
+   nginx:
+     image: nginx:stable-alpine
+     restart: always
+     networks:
+       - proxy
+     expose:
+       - "80"
+     volumes:
+#       - /etc/nginx/conf.d/nginx.conf:/etc/nginx/conf.d/nginx.conf
+       - ./data/nginx/conf.d/nginx.conf:/etc/nginx/conf.d/nginx.conf
+       - /data/html:/var/www/html
+     environment:
+       - NGINX_HOST=sitio2.pachetu.com
+       - VIRTUAL_HOST= sitio2.pachetu.com
+       - LETSENCRYPT_HOST= sitio2.pachetu.com
+       - LETSENCRYPT_EMAIL= mapache@pachetu.com
+networks:
+  proxy:
+    external: true

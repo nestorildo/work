@@ -1,0 +1,56 @@
+version: '3.9'
+services:
+  basemamalona-db:
+    container_name: ${CONTAINER_DB_NAME}
+    image: ${DB_IMAGE:-mariadb}:${DB_VERSION:-latest}
+    restart: unless-stopped
+    networks:
+      - proxy
+    volumes:
+      - ${DB_FILES}:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+  sitiomamalon-wordpress:
+    depends_on:
+    - basemamalona-db
+    container_name: ${CONTAINER_SITE_NAME}
+    networks:
+      - proxy
+    #image: ${SITE_IMAGE:-wordpress}:$}SITE_VERSION:-latest}
+    build:
+      context: ${DOCKERFILE_CONTEXT}
+      dockerfile: ${DOCKERFILE_NAME}
+    restart: unless-stopped
+    volumes:
+      - ${SITE_FILES}:/var/www/html
+      - ${PHP_INI}:/usr/local/etc/php/conf.d/php.ini
+    environment:
+      WORDPRESS_DB_HOST: ${CONTAINER_DB_NAME}:3306
+      WORDPRESS_DB_NAME: ${MYSQL_DATABASE}
+      WORDPRESS_DB_USER: ${MYSQL_USER}
+      WORDPRESS_DB_PASSWORD: ${MYSQL_PASSWORD}
+      WORDPRESS_TABLE_PREFIX: ${WORDPRESS_TABLE_PREFIX}
+    logging:
+      options:
+        max-size: ${LOGGING_OPTIONS_MAX_SIZE:-200K}
+  sitiomamalon-nginx:
+    image: nginx:stable-alpine
+    restart: unless-stopped
+    volumes:
+      - ${NGINX_CONFIG}:/etc/nginx/conf.d
+      - ${SITE_FILES}:/var/www/html
+    expose:
+      - "80"
+    networks:
+      - proxy
+    environment:
+      - VIRTUAL_HOST=${DOMAIN}
+      - LETSENCRYPT_HOST=${DOMAIN}
+      - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
+
+networks:
+  proxy:
+    external: true
